@@ -1,0 +1,127 @@
+# ============================================================
+# HIT137 - Assignment 2 | S1 2026
+# Question 2: Evaluator + Output Writer
+# File: evaluator.py
+# Author: Roshan
+# ============================================================
+ 
+import os
+from tokeniser import tokenise, format_tokens, parse, tree_str, eval_node
+ 
+ 
+# ─────────────────────────────────────────────────────────────
+# STEP 4 — RESULT FORMATTING
+# ─────────────────────────────────────────────────────────────
+ 
+def format_result(value):
+    """Whole numbers -> no decimal. Decimals -> 4 decimal places."""
+    if value == int(value):
+        return str(int(value))
+    return f'{value:.4f}'
+ 
+ 
+# ─────────────────────────────────────────────────────────────
+# STEP 5 — PRINT ONE BLOCK TO TERMINAL
+# ─────────────────────────────────────────────────────────────
+ 
+def print_block(entry, result_str, last=False):
+    """Print 4-line block to terminal. Blank line after unless last."""
+    print(f"Input: {entry['input']}")
+    print(f"Tree: {entry['tree']}")
+    print(f"Tokens: {entry['tokens']}")
+    print(f"Result: {result_str}")
+    if not last:
+        print()
+ 
+ 
+# ─────────────────────────────────────────────────────────────
+# STEP 6 — MAIN INTERFACE (required by assignment)
+# ─────────────────────────────────────────────────────────────
+ 
+def evaluate_file(input_path: str) -> list[dict]:
+    """
+    Read expressions from input_path, evaluate each one,
+    print 4-line blocks to terminal, and write output.txt.
+ 
+    Returns list of dicts:
+        {"input": str, "tree": str, "tokens": str, "result": float|"ERROR"}
+    """
+    output_path = os.path.join(
+        os.path.dirname(os.path.abspath(input_path)), "output.txt"
+    )
+ 
+    with open(input_path, "r", encoding="utf-8") as f:
+        lines = [line.rstrip("\n\r") for line in f.readlines()]
+ 
+    results   = []
+    out_lines = []
+ 
+    for idx, expr in enumerate(lines):
+        entry = {
+            "input":  expr,
+            "tree":   "ERROR",
+            "tokens": "ERROR",
+            "result": "ERROR"
+        }
+        result_str = "ERROR"
+ 
+        try:
+            tokens    = tokenise(expr)
+            token_str = format_tokens(tokens)
+            tree      = parse(tokens)
+            tree_s    = tree_str(tree)
+            value     = eval_node(tree)
+ 
+            entry["tokens"] = token_str
+            entry["tree"]   = tree_s
+            entry["result"] = value
+            result_str      = format_result(value)
+ 
+        except ZeroDivisionError:
+            try:
+                tokens    = tokenise(expr)
+                token_str = format_tokens(tokens)
+                tree      = parse(tokens)
+                tree_s    = tree_str(tree)
+                entry["tokens"] = token_str
+                entry["tree"]   = tree_s
+            except Exception:
+                pass
+ 
+        except Exception:
+            try:
+                tokens    = tokenise(expr)
+                token_str = format_tokens(tokens)
+                entry["tokens"] = token_str
+            except Exception:
+                pass
+ 
+        # Print to terminal in required 4-line format
+        is_last = (idx == len(lines) - 1)
+        print_block(entry, result_str, last=is_last)
+ 
+        # Build output.txt lines
+        out_lines.append(f"Input: {entry['input']}")
+        out_lines.append(f"Tree: {entry['tree']}")
+        out_lines.append(f"Tokens: {entry['tokens']}")
+        out_lines.append(f"Result: {result_str}")
+        out_lines.append("")
+ 
+        results.append(entry)
+ 
+    if out_lines and out_lines[-1] == "":
+        out_lines.pop()
+ 
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(out_lines))
+ 
+    return results
+ 
+ 
+# ─────────────────────────────────────────────────────────────
+# Run: python evaluator.py sample_input.txt
+# ─────────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    import sys
+    path = sys.argv[1] if len(sys.argv) > 1 else "sample_input.txt"
+    evaluate_file(path)
